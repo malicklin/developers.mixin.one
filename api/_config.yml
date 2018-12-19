@@ -3,7 +3,7 @@
 
 title: Mixin Developer
 url: "https://developers.mixin.one"
-baseurl:
+baseurl: ""
 google_analytics_key: UA-39165210-6
 show_full_navigation: false
 
@@ -24,6 +24,7 @@ plugins:
   - jekyll-sitemap
   - jekyll-seo-tag
   - jekyll-feed
+  - jekyll-multiple-languages-plugin
 
 exclude:
   - Gemfile
@@ -75,4 +76,7 @@ types:
 sass:
   load_paths: "_assets/css"
 cdn:
-  baseurl: true
+  baseurl: false
+
+languages: ["en", "zh"]
+exclude_from_localizations: ["assets", "css", "images", "scripts"]

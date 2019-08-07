@@ -1,43 +1,37 @@
 import forge from 'node-forge';
 import moment from 'moment';
-import jwt from 'jsonwebtoken';
 import uuid from 'uuid/v4';
 import LittleEndian from "int64-buffer";
-import crypto from 'crypto';
 
-function Mixin() {
-}
-
-Mixin.prototype = {
-  signAuthenticationToken: function (uid, sid, privateKey, method, uri, body) {
+function Signer() {
+  signAuthenticationToken: function(uid, sid, privateKey, method, uri, body) {
     if (typeof(body) === "object") {
       body = JSON.stringify(body);
     }
 
     let expire = moment.utc().add(30, 'minutes').unix();
-    let md = forge.md.sha256.create();
-    md.update(method + uri + body);
+    let sha256 = forge.md.sha256.create();
+    sha256.update(method + uri + body);
     let payload = {
       uid: uid,
       sid: sid,
       iat: moment.utc().unix() ,
       exp: expire,
       jti: uuid(),
-      sig: md.digest().toHex()
+      sig: sha256.digest().toHex()
     };
-    return jwt.sign(payload, privateKey, { algorithm: 'RS512'});
+    let seed = Uint8Array.from(Buffer.from(privateKey, 'hex'));
+    let keypair = forge.pki.ed25519.generateKeyPair({seed: seed});
+    return jwt.sign(payload, keypair.privateKey, { algorithm: 'ES256'});
   },
 
   signEncryptedPin: function (pin, pinToken, sessionId, privateKey, iterator) {
     const blockSize = 16;
     let Uint64LE = LittleEndian.Int64BE;
 
-    pinToken = new Buffer(pinToken, 'base64');
-    privateKey = forge.pki.privateKeyFromPem(privateKey);
-    let pinKey = privateKey.decrypt(pinToken, 'RSA-OAEP', {
-      md: forge.md.sha256.create(),
-      label: sessionId
-    });
+    public = Uint8Array.from(new Buffer(pinToken, 'base64'));
+    private = Uint8Array.from(Buffer.from(privateKey, 'hex'));
+    key = Buffer.from(nacl.scalarMult(asa, abp)).toString('hex');
     let time = new Uint64LE(moment.utc().unix());
     time = [...time.toBuffer()].reverse();
     if (iterator == undefined || iterator === "") {
@@ -52,10 +46,10 @@ Mixin.prototype = {
     for (let i=0; i<padding; i++) {
       paddingArray.push(padding);
     };
-    buf = Buffer.concat([buf, new Buffer(paddingArray)]);
 
+    buf = Buffer.concat([buf, new Buffer(paddingArray)]);
     let iv16  = crypto.randomBytes(16);
-    let cipher = crypto.createCipheriv('aes-256-cbc', this.hexToBytes(forge.util.binary.hex.encode(pinKey)), iv16);
+    let cipher = crypto.createCipheriv('aes-256-cbc', this.hexToBytes(key), iv16);
     cipher.setAutoPadding(false);
     let encrypted_pin_buff = cipher.update(buf, 'utf-8');
     encrypted_pin_buff = Buffer.concat([iv16 , encrypted_pin_buff]);
@@ -71,4 +65,4 @@ Mixin.prototype = {
   }
 };
 
-export default Mixin;
+export default Signer;

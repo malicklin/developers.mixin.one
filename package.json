@@ -15,6 +15,7 @@
     "noty": "^3.2.0-beta",
     "simple-line-icons": "^2.4.1",
     "to": "^0.2.9",
+    "tweetnacl": "^1.0.1",
     "uuid": "^3.3.2",
     "validator": "^11.1.0"
   },

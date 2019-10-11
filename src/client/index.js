@@ -4,6 +4,7 @@ import $ from 'jquery';
 import Croppie from 'croppie';
 import forge from 'node-forge';
 import FormUtils from '../utils/form.js';
+import { saveAs } from 'file-saver';
 
 function App(router, api) {
   this.router = router;
@@ -66,6 +67,7 @@ App.prototype = {
           }
           var sessionItem= $(this);
           var appId = sessionItem.parents('.app.block').attr('data-app-id');
+          var identity = sessionItem.parents('.app.block').attr('data-number');
           var pin = "" + (randInt(9) + 1) + randInt(10) + randInt(10) + randInt(10) + randInt(10) + randInt(10);
           var keypair = forge.pki.rsa.generateKeyPair({bits: 1024, e: 0x10001});
           var body = forge.asn1.toDer(forge.pki.publicKeyToAsn1(keypair.publicKey)).getBytes();
@@ -75,18 +77,15 @@ App.prototype = {
             if (resp.error) {
               return;
             }
-            var data = {
+            let data = {
               "pin": pin,
               "client_id": appId,
               "session_id": resp.data.session_id,
               "pin_token": resp.data.pin_token,
               "private_key": private_key
-            }
-            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, ' '));
-            var anchor = document.getElementById(appId);
-            anchor.setAttribute("href", dataStr)
-            anchor.setAttribute("download", "keystore.json");
-            anchor.click();
+            };
+            let blob = new Blob([JSON.stringify(data, null, ' ')], {type: "text/json;charset=utf-8"});
+            saveAs(blob, `keystore-${identity}.json`);
           }, appId, pin, public_key);
         });
         self.router.updatePageLinks();

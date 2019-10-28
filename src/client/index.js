@@ -4,6 +4,7 @@ import $ from 'jquery';
 import Croppie from 'croppie';
 import forge from 'node-forge';
 import FormUtils from '../utils/form.js';
+import Mixin from '../utils/mixin.js';
 
 function App(router, api) {
   this.router = router;
@@ -11,6 +12,7 @@ function App(router, api) {
   this.templateLayout = require('./layout.html');
   this.templateDashboard = require('./dashboard.html');
   this.templateForm = require('./form.html');
+  this.templatePin = require('./pin.html');
   this.partialApp = require('./app.html');
 }
 
@@ -66,7 +68,6 @@ App.prototype = {
           }
           var sessionItem= $(this);
           var appId = sessionItem.parents('.app.block').attr('data-app-id');
-          var pin = "" + (randInt(9) + 1) + randInt(10) + randInt(10) + randInt(10) + randInt(10) + randInt(10);
           var keypair = forge.pki.rsa.generateKeyPair({bits: 1024, e: 0x10001});
           var body = forge.asn1.toDer(forge.pki.publicKeyToAsn1(keypair.publicKey)).getBytes();
           var public_key = forge.util.encode64(body, 64);
@@ -76,7 +77,6 @@ App.prototype = {
               return;
             }
             var data = {
-              "pin": pin,
               "client_id": appId,
               "session_id": resp.data.session_id,
               "pin_token": resp.data.pin_token,
@@ -85,9 +85,9 @@ App.prototype = {
             var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, ' '));
             var anchor = document.getElementById(appId);
             anchor.setAttribute("href", dataStr)
-            anchor.setAttribute("download", "keystore.json");
+            anchor.setAttribute("download", `keystore.json`);
             anchor.click();
-          }, appId, pin, public_key);
+          }, appId, public_key);
         });
         self.router.updatePageLinks();
         if (github == null || github == undefined) {
@@ -156,6 +156,39 @@ App.prototype = {
       self.router.updatePageLinks();
       self.loadImage();
     }, id);
+  },
+
+  pin: function (id) {
+    const self = this;
+    let objStr = window.localStorage.getItem(id);
+    let data = JSON.parse(objStr);
+    if (data == undefined) {
+      self.router.replace("/tokens/"+id);
+      return;
+    }
+
+    $('body').attr('class', 'app layout');
+    $('#layout-container').html(self.templateLayout({title: "Update PIN"}));
+    $('#layout-container .content').html(self.templatePin());
+    $('form').on('submit', function (event) {
+      event.preventDefault();
+      let params = new FormUtils().serialize($(this));
+      let oldPin = params['old_pin'].trim();
+      let pin = params['pin'].trim();
+      oldPin = new Mixin().signEncryptedPin(oldPin, data.pin_token, data.session_id, data.private_key);
+      pin = new Mixin().signEncryptedPin(pin, data.pin_token, data.session_id, data.private_key);
+      let req = {
+        "old_pin": oldPin,
+        "pin": pin
+      };
+      let token = new Mixin().signAuthenticationToken(id, data.session_id, data.private_key, 'POST', '/pin/update', req);
+      self.api.app.updatePin(function (resp) {
+        if (resp.error) {
+          return;
+        }
+        self.router.replace('/dashboard');
+      }, token, req);
+    });
   },
 
   loadImage: function () {

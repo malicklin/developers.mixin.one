@@ -29,6 +29,9 @@ Mixin.prototype = {
   },
 
   signEncryptedPin: function (pin, pinToken, sessionId, privateKey, iterator) {
+    if (!pin) {
+      return '';
+    }
     const blockSize = 16;
     let Uint64LE = LittleEndian.Int64BE;
 

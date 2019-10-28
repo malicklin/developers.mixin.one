@@ -33,7 +33,7 @@ Token.prototype = {
         return;
       }
       window.localStorage.setItem(id, JSON.stringify(params).replace(/\\\\/gi, '\\'));
-      self.router.replace("/apps/"+id+"/assets");
+      self.router.replace("/dashboard");
     });
     self.router.updatePageLinks();
   }

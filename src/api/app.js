@@ -1,3 +1,5 @@
+import Mixin from '../utils/mixin.js';
+
 function App(api) {
   this.api = api;
 }
@@ -35,6 +37,12 @@ App.prototype = {
     });
   },
 
+  updatePin: function (callback, token, req) {
+    this.api.requestWithToken('POST', '/pin/update', req, token, function (resp) {
+      callback(resp);
+    });
+  },
+
   secret: function (callback, id) {
     this.api.request('POST', '/apps/' + id + '/secret', undefined, function (resp) {
       callback(resp);
@@ -42,7 +50,7 @@ App.prototype = {
   },
 
   session: function (callback, id, pin, public_key) {
-    this.api.request('POST', '/apps/' + id + '/session', {pin: pin, session_secret: public_key}, function (resp) {
+    this.api.request('POST', '/apps/' + id + '/session', {session_secret: public_key}, function (resp) {
       callback(resp);
     });
   }

@@ -62,6 +62,9 @@ router.on({
   '/apps/:id/edit': function (params) {
     new App(router, api).edit(params['id']);
   },
+  '/apps/:id/pin': function (params) {
+    new App(router, api).pin(params['id']);
+  },
   '/dashboard': function () {
     new App(router, api).index();
   },
